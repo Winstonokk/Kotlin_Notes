@@ -1,0 +1,314 @@
+笔记原文链接出自CSDN:https://blog.csdn.net/u010326875/article/details/92586892
+
+1、搭建环境，有android studio环境的基础，处理kotlin的配置就很简单了，度娘有好多，比如：https://www.cnblogs.com/yunfang/p/7694118.html
+
+2、编写第一个kotlin环境
+    
+    kotlin环境和插件配置好后，创建一个kotlin项目；默认会有配置好kotlin的依赖信息：
+    
+        1>、项目gradle中buildscript默认配置有：
+            buildscript {
+                ext.kotlin_version = '1.3.30' //kotlin的版本
+                repositories {
+                    google()
+                    jcenter()
+                }
+                dependencies {
+                    classpath 'com.android.tools.build:gradle:3.2.0'
+                    
+                    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version" //这个就是kotlin重要的依赖路径
+                    
+                }
+            }
+        2>、app下的gradle中：
+        
+            apply plugin: 'kotlin-android'
+
+            apply plugin: 'kotlin-android-extensions'  //该插件将生成一些额外的代码，允许你访问布局XML的View，就像它们是在布局中定义的属性一样，你可以使用 id 的名称 (快捷的findviewfindid操作)
+            
+            
+            dependencies {
+            
+                implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+                implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"  //kotlin依赖库
+
+                ..........
+            }
+            
+        3>、如果使用了kotlin-android-extensions，不使用findviewfindid操作一定要在对应的kotlin文件里导入：
+        
+            import kotlinx.android.synthetic.main.activity_main.*
+            
+            //import kotlinx.android.synthetic.main.（这里是xml的文件名）.*
+            
+            否则不管用，如果默认有就不用管了
+            
+
+3、java使用中的一些习惯在kotlin中体现：
+
+    1》、kotlin不需要在每条语句后边加 ； 分号 （去掉了强迫症）
+
+    2》、kotlin创建变量声明变量的表示符也变了：  var 和 val
+    
+    3》、kotlin的某个类中的对象直接.出来即可，不需要加（）
+
+    4》、kotlin的方法使用：
+
+         fun getInfo():String{
+            return "motian"
+         }
+         
+         //不可以用int，替换成Int
+         fun getRadiusGradientSpan(string:String, startColor:Int, endColor:Int):SpannableStringBuilder{
+             var spannableStringBuilder = SpannableStringBuilder(string);
+             var span = LinearGradientFontSpan(startColor, endColor);
+             spannableStringBuilder.setSpan(span, 0, spannableStringBuilder.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+             return spannableStringBuilder;
+         }
+    5》、声明view
+        
+        如果使用了kotlin-android-extensions，就直接用xml的id名称即可；
+         
+    6》、对象的 !!  表示处理了判断为空的情况，意思就是不为空的时候执行，比如：mediaRecorder!!.setVideoSize(176, 144)
+     
+4、 lateinit var和by lazy:
+
+    参考：https://blog.csdn.net/dpl12/article/details/80758049
+    
+    Kotlin中有两种延迟初始化的方式。一种是lateinit var，一种是by lazy。
+    
+        1>、lateinit var只能用来修饰类属性，不能用来修饰局部变量，并且只能用来修饰对象，不能用来修饰基本类型(因为基本类型的属性在类加载后的准备阶段都会被初始化为默认值)。
+            lateinit var的作用也比较简单，就是让编译期在检查时不要因为属性变量未被初始化而报错。
+            Kotlin相信当开发者显式使用lateinit var 关键字的时候，他一定也会在后面某个合理的时机将该属性对象初始化的(然而，谁知道呢，也许他用完才想起还没初始化)。
+
+            private lateinit var name: String
+            
+        2>、by lazy本身是一种属性委托。属性委托的关键字是by。by lazy 的写法如下
+            
+            
+            //用于属性延迟初始化
+            val name: Int by lazy { 1 }
+             
+            //用于局部变量延迟初始化
+            public fun foo() {
+                val bar by lazy { "hello" }
+                println(bar)
+            }
+
+5、kotlin中的对象使用：
+
+    1》、声明对象
+        var mediaRecorder: MediaRecorder?= null //录制视频的类
+        var surfaceHolder: SurfaceHolder?= null //SurfaceHolder
+        
+    2》、对象赋值
+        override fun surfaceCreated(holder: SurfaceHolder?) {
+            surfaceHolder = holder!!
+        }
+        
+    3》、对象使用
+        mediaRecorder  = MediaRecorder()
+        // 设置录制视频源为Camera(相机)
+        mediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.CAMERA)
+    
+6、kotlin的构造函数：
+
+    错误写法：
+        fun PermissionsChecker(context: Context){
+            mContext = context.getApplicationContext()
+        }
+    
+    正确写法：
+        constructor(context: Context){
+            mContext = context.applicationContext
+        }
+        
+        或者直接写：
+        
+        class PermissionsChecker(context: Context) {
+
+            private var mContext: Context = context.applicationContext
+        
+        }
+        
+7、vararg kotlin的可变参数
+
+    eg：fun main(vararg args:String){}
+    
+    参考：https://blog.csdn.net/hjkcghjmguyy/article/details/76408308
+    
+    （vararg permissions: String） 和 （var permissionListTmp = arrayOf<String>）的传参使用：
+    
+    eg：
+        var permissionListTmp = arrayOf<String>(CAMERA,RECORD_AUDIO,WRITE_EXTERNAL_STORAGE)// 所需的全部权限
+        
+        // 缺少权限时, 进入权限配置页面
+        if (mPermissionsChecker!!.lacksPermissions(*permissionListTmp)) {  //重点是这里在 var参数前加上* 即可
+            startPermissionsActivity()
+        }
+        
+        // 判断权限集合
+        fun lacksPermissions(vararg permissions: String): Boolean { //vararg 可变参数数组
+            for (permission in permissions) {
+                if (lacksPermission(permission)) {
+                    return true
+                }
+            }
+            return false
+        }
+
+
+8、kotlin里的数组循环:
+
+    
+    // 判断权限集合
+    fun lacksPermissions(vararg permissions: String): Boolean { //   String是数组的类型、vararg kotlin的可变参数
+        for (permission in permissions) { //for循环
+            if (lacksPermission(permission)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    // 判断是否缺少权限
+    private fun lacksPermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(mContext, permission) == PackageManager.PERMISSION_DENIED
+    }
+    
+
+9、kotlin抽象一个方法：
+
+    override fun onCreate(savedInstanceState: Bundle?) { //参数类型一定要对上 Bundle?
+        super.onCreate(savedInstanceState)
+        initContentView(savedInstanceState)
+    }
+
+    /**
+     * @Title: initView
+     * @Description: (初始化布局文件的控件)
+     * @param: savedInstanceState
+     * @return: void 返回类型
+     */
+    protected abstract fun initContentView(savedInstanceState: Bundle?) //参数类型一定要对上 Bundle?
+    
+    
+    /**
+     * 初始化View的方法（使用抽象方法）
+     */
+    override fun initContentView(savedInstanceState: Bundle?) {//参数类型一定要对上 Bundle?
+        setContentView(R.layout.activity_main)
+    }
+    
+10、Kotlin 笔记 : !!. 与 ?. 的区别
+
+    参考：https://blog.csdn.net/qq_37501744/article/details/81021605
+    
+    ?.   
+
+        //kotlin:
+        a?.run()
+         
+        //与java相同:
+        if(a!=null){
+         a.run();
+        }
+    
+    !!.  
+
+        //kotlin:
+        a!!.run()
+         
+        //与java相同: 
+        if(a!=null){
+         a.run();
+        }else{
+         throw new KotlinNullPointException();
+        }
+        
+    ?. 与 !!. 都是Kotlin提供的检测空指针的方法。
+    
+11、kotlin中内部类的写法
+
+    internal inner class ProgressRunnable : Runnable {
+        override fun run() {
+            while (mCurrentProgress < mTotalProgress) {
+                mCurrentProgress += 1
+                roundProgressBar!!.progress = mCurrentProgress
+                try {
+                    Thread.sleep(100)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+12、Kotlin如何startActivity
+
+    startActivity(Intent(MainActivity@this, SecondActivity::class.java))
+    或者
+    startActivity(Intent(this@MainActivity, SecondActivity::class.java))
+    或者
+    startActivity(Intent(this, SecondActivity::class.java))
+    
+13、Kotlin类型强转
+
+    var child = person as Child
+    
+14、Kotlin的for循环
+
+    参考：https://www.jianshu.com/p/27646c6561a7
+    
+    在Kotlin中想遍历1-100的数值可以这样写：
+    for (index in 1..100){
+        print(index)
+    }
+
+    这样写是正序遍历，如果想倒序遍历就该使用标准库中定义的downTo()函数：
+    for (index in 100 downTo 1){
+        print(index)
+    }
+
+    想不使用1作为遍历的步长，可以使用step()函数：
+    for (index in 1..100 step 2){
+        print(index)//会输出1..3..5......
+    }
+
+    要创建一个不包含末尾元素的区间：
+    for (index in 1 until 10){
+        println(index)//输出0..9
+    }
+
+    遍历一个数组/列表，想同时取出下标和元素：
+    val array = arrayOf("a", "b", "c")
+    for ((index,e) in array.withIndex()){
+        println("下标=$index----元素=$e")
+    }
+
+    遍历一个数组/列表，只取出下标:
+    val array = arrayOf("a", "b", "c")
+    for (index in array.indices){
+        println("index=$index")//输出0，1，2
+    }
+
+    遍历取元素：
+    val array = arrayOf("a", "b", "c")
+    for (element in array){
+        println("element=$element")//输出a,b,c
+    }
+
+15、Kotlin静态方法
+
+    参考：https://blog.csdn.net/redwolfchao/article/details/72571584
+    
+    全都是静态方法的情况 : class 类名 改为 object 类名 即可
+    
+    一部分是静态方法的情况 : 将方法用 companion object { } 包裹即可
+    
+
+Kotlin开发有一个好处，就是和java一样，语法不准确或者有问题，会有提示和相应的解决方法，挺好的！
+————————————————
+版权声明：本文为CSDN博主「漠天515」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/u010326875/article/details/92586892
